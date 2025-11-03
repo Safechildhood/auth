@@ -44,12 +44,6 @@ func (ah *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest
 		}
 	}
 
-	// domain.ErrUserAlreadyExists
-	// domain.ErrInvalidFingerprintsHash
-	// domain.ErrGeneratingCode
-	// domain.ErrVerificationCodeAlreadyExists
-	// domain.ErrUnknownEventType
-
 	return &authpb.VerificationCodeResponse{
 		VerificationCodeTtl: durationpb.New(verificationCodeTTL),
 	}, nil
@@ -73,14 +67,6 @@ func (ah *AuthHandler) RegisterConfirm(ctx context.Context, req *authpb.ConfirmR
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrUserNotFound
-	// domain.ErrInvalidID
-	// domain.ErrInvalidFingerprintsHash
-	// domain.ErrInvalidTime
-	// domain.ErrFingerprintNotFound
-	// domain.ErrVerificationCodeNotFound
-	// domain.ErrRefreshTokenAlreadyExists
 
 	return &authpb.TokensResponse{
 		AccessToken:    tokensOutput.AccessToken,
@@ -109,17 +95,6 @@ func (ah *AuthHandler) ResendCode(ctx context.Context, req *authpb.ResendCodeReq
 		}
 	}
 
-	// domain.ErrUserNotFound
-	// domain.ErrFingerprintNotFound
-	// domain.ErrInvalidID
-	// domain.ErrInvalidFingerprintsHash
-	// domain.ErrInvalidTime
-	// domain.ErrVerificationCodeNotFound
-	// domain.ErrVerificationCodeResendTimeout
-	// domain.ErrGeneratingCode
-	// domain.ErrVerificationCodeAlreadyExists
-	// domain.ErrUnknownEventType
-
 	return &authpb.VerificationCodeResponse{
 		VerificationCodeTtl: durationpb.New(verificationCodeTTL),
 	}, nil
@@ -145,13 +120,6 @@ func (ah *AuthHandler) ValidateAction(ctx context.Context, req *authpb.UserSecur
 		}
 	}
 
-	// domain.ErrUnknownObjectType
-	// domain.ErrInvalidTime
-	// domain.ErrInvalidAccessToken
-	// domain.ErrInvalidRefreshToken
-	// domain.ErrInvalidID
-	// domain.ErrRefreshTokenNotFound
-
 	return &authpb.GenericResponse{
 		Success: isValid,
 	}, nil
@@ -176,14 +144,6 @@ func (ah *AuthHandler) UpdateTokens(ctx context.Context, req *authpb.UserSecureR
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrUnknownObjectType
-	// domain.ErrInvalidTime
-	// domain.ErrInvalidAccessToken
-	// domain.ErrInvalidRefreshToken
-	// domain.ErrInvalidID
-	// domain.ErrRefreshTokenNotFound
-	// domain.ErrInvalidAction
 
 	return &authpb.TokensResponse{
 		AccessToken:    tokensOutput.AccessToken,
@@ -211,12 +171,6 @@ func (ah *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*au
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrUserNotFound
-	// domain.ErrInvalidPassword
-	// domain.ErrRefreshTokenAlreadyExists
-	// domain.ErrGeneratingCode
-	// domain.ErrVerificationCodeAlreadyExists
 
 	response := &authpb.LoginResponse{}
 	if (loginOutput.Tokens != service.TokensOutput{}) {
@@ -258,11 +212,6 @@ func (ah *AuthHandler) LoginConfirm(ctx context.Context, req *authpb.ConfirmRequ
 		}
 	}
 
-	// domain.ErrVerificationCodeNotFound
-	// domain.ErrInvalidVerificationCode
-	// domain.ErrUserNotFound
-	// domain.ErrVerificationCodeAlreadyExists
-
 	return &authpb.TokensResponse{
 		AccessToken:    tokensOutput.AccessToken,
 		AccessTokenTtl: durationpb.New(tokensOutput.AccessTokenTTL),
@@ -290,16 +239,6 @@ func (ah *AuthHandler) Logout(ctx context.Context, req *authpb.UserSecureRequest
 		}
 	}
 
-	// domain.ErrUnknownObjectType
-	// domain.ErrInvalidTime
-	// domain.ErrInvalidAccessToken
-	// domain.ErrInvalidRefreshToken
-	// domain.ErrInvalidID
-	// domain.ErrRefreshTokenNotFound
-	// domain.ErrInvalidAction
-	// domain.ErrParsingObjectType
-	// domain.ErrUnknownObjectType
-
 	return &authpb.GenericResponse{
 		Success: ok,
 	}, nil
@@ -325,14 +264,6 @@ func (ah *AuthHandler) LogoutAll(ctx context.Context, req *authpb.UserSecureRequ
 		}
 	}
 
-	// domain.ErrUnknownObjectType
-	// domain.ErrInvalidTime
-	// domain.ErrInvalidAccessToken
-	// domain.ErrInvalidRefreshToken
-	// domain.ErrInvalidID
-	// domain.ErrRefreshTokenNotFound
-	// domain.ErrInvalidAction
-
 	return &authpb.GenericResponse{
 		Success: ok,
 	}, nil
@@ -349,9 +280,6 @@ func (ah *AuthHandler) GetSecretPhraseHint(ctx context.Context, req *authpb.Emai
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrVerificationCodeNotFound
-	// domain.ErrUserNotFound
 
 	return &authpb.GetSecretPhraseHintResponse{
 		SecretPhraseHint: hint,
@@ -376,10 +304,6 @@ func (ah *AuthHandler) ChangePassword(ctx context.Context, req *authpb.ChangePas
 		}
 	}
 
-	// domain.ErrUserNotFound
-	// domain.ErrInvalidSecretPhrase
-	// domain.ErrVerificationCodeAlreadyExists
-
 	return &authpb.VerificationCodeResponse{
 		VerificationCodeTtl: durationpb.New(verificationCodeTTL),
 	}, nil
@@ -402,10 +326,6 @@ func (ah *AuthHandler) ChangePasswordConfirm(ctx context.Context, req *authpb.Ch
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrUserNotFound
-	// domain.ErrVerificationCodeNotFound
-	// domain.ErrInvalidVerificationCode
 
 	return &authpb.GenericResponse{
 		Success: ok,
@@ -436,16 +356,6 @@ func (ah *AuthHandler) ChangePasswordWithTokens(ctx context.Context, req *authpb
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-
-	// domain.ErrUnknownObjectType
-	// domain.ErrInvalidTime
-	// domain.ErrInvalidAccessToken
-	// domain.ErrInvalidRefreshToken
-	// domain.ErrInvalidID
-	// domain.ErrRefreshTokenNotFound
-	// domain.ErrInvalidAction
-	// domain.ErrUserNotFound
-	// domain.ErrInvalidPassword
 
 	return &authpb.GenericResponse{
 		Success: ok,
