@@ -8,9 +8,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/mirrorblade/crypto"
 	"github.com/safechildhood/auth/internal/domain"
 	"github.com/safechildhood/auth/internal/repository"
-	"github.com/safechildhood/auth/pkg/crypto/manager"
 	jwtmanager "github.com/safechildhood/auth/pkg/jwt"
 )
 
@@ -19,21 +19,21 @@ type AccessTokensService struct {
 
 	accessTokenTTL time.Duration
 
-	tokenManager  jwtmanager.Manager
-	cryptoManager manager.Crypto
+	tokenManager   jwtmanager.Manager
+	cryptoProvider crypto.Provider
 }
 
 func NewAccessTokensService(
 	blacklist repository.Blacklist,
 	accessTokenTTL time.Duration,
 	tokenManager jwtmanager.Manager,
-	cryptoManager manager.Crypto,
+	cryptoProvider crypto.Provider,
 ) *AccessTokensService {
 	return &AccessTokensService{
 		blacklist:      blacklist,
 		accessTokenTTL: accessTokenTTL,
 		tokenManager:   tokenManager,
-		cryptoManager:  cryptoManager,
+		cryptoProvider: cryptoProvider,
 	}
 }
 
@@ -80,7 +80,7 @@ func (ats *AccessTokensService) ParseToken(ctx context.Context, token string) (d
 }
 
 func (ats *AccessTokensService) VerifyToken(ctx context.Context, token string) (bool, error) {
-	tokenHash, err := ats.cryptoManager.Hash([]byte(token), nil)
+	tokenHash, err := ats.cryptoProvider.Hash([]byte(token), nil)
 	if err != nil {
 		return false, err
 	}
@@ -115,7 +115,7 @@ func (ats *AccessTokensService) Create(userID uuid.UUID) (string, time.Duration,
 }
 
 func (ats *AccessTokensService) AddToBlacklist(ctx context.Context, token string) error {
-	tokenHash, err := ats.cryptoManager.Hash([]byte(token), nil)
+	tokenHash, err := ats.cryptoProvider.Hash([]byte(token), nil)
 	if err != nil {
 		return err
 	}

@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mirrorblade/crypto"
 	"github.com/safechildhood/auth/internal/domain"
 	"github.com/safechildhood/auth/internal/repository"
-	"github.com/safechildhood/auth/pkg/crypto/manager"
 )
 
 type UsersService struct {
@@ -22,7 +22,7 @@ type UsersService struct {
 
 	saltLength int
 
-	cryptoManager manager.Crypto
+	cryptoProvider crypto.Provider
 }
 
 func NewUsersService(
@@ -30,14 +30,14 @@ func NewUsersService(
 	temporaryUsers repository.TemporaryUsers,
 	temporaryUserTTL time.Duration,
 	saltLength int,
-	cryptoManager manager.Crypto,
+	cryptoProvider crypto.Provider,
 ) *UsersService {
 	return &UsersService{
 		users:            users,
 		temporaryUsers:   temporaryUsers,
 		temporaryUserTTL: temporaryUserTTL,
 		saltLength:       saltLength,
-		cryptoManager:    cryptoManager,
+		cryptoProvider:   cryptoProvider,
 	}
 }
 
@@ -47,7 +47,7 @@ func (us *UsersService) VerifyFingerprint(ctx context.Context, email, fingerprin
 		return false, err
 	}
 
-	fingerprintHash, err := us.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := us.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +61,7 @@ func (us *UsersService) VerifyTemporalyFingerprint(ctx context.Context, email, f
 		return false, err
 	}
 
-	fingerprintHash, err := us.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := us.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return false, err
 	}
@@ -85,7 +85,7 @@ func (us *UsersService) VerifyPassword(ctx context.Context, id uuid.UUID, passwo
 		return false, err
 	}
 
-	return us.cryptoManager.VerifyHash([]byte(password), salt, expectedHash)
+	return us.cryptoProvider.VerifyHash([]byte(password), salt, expectedHash)
 }
 
 func (us *UsersService) VerifySecretPhrase(ctx context.Context, email, secretPhrase string) (bool, error) {
@@ -144,12 +144,12 @@ func (us *UsersService) CreateTemporary(
 		return err
 	}
 
-	passwordHash, err := us.cryptoManager.Hash([]byte(password), salt)
+	passwordHash, err := us.cryptoProvider.Hash([]byte(password), salt)
 	if err != nil {
 		return err
 	}
 
-	fingerprintHash, err := us.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := us.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (us *UsersService) UpdatePassword(ctx context.Context, id uuid.UUID, newPas
 		return err
 	}
 
-	passwordHash, err := us.cryptoManager.Hash([]byte(newPassword), []byte(user.Salt))
+	passwordHash, err := us.cryptoProvider.Hash([]byte(newPassword), []byte(user.Salt))
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (us *UsersService) UpdatePasswordByEmail(ctx context.Context, email string,
 		return err
 	}
 
-	passwordHash, err := us.cryptoManager.Hash([]byte(newPassword), []byte(user.Salt))
+	passwordHash, err := us.cryptoProvider.Hash([]byte(newPassword), []byte(user.Salt))
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (us *UsersService) UpdatePasswordByEmail(ctx context.Context, email string,
 }
 
 func (us *UsersService) AddFingerprint(ctx context.Context, id uuid.UUID, fingerprint string) error {
-	fingerprintHash, err := us.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := us.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return err
 	}

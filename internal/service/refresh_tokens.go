@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mirrorblade/crypto"
 	"github.com/safechildhood/auth/internal/domain"
 	"github.com/safechildhood/auth/internal/repository"
-	"github.com/safechildhood/auth/pkg/crypto/manager"
 )
 
 type RefreshTokensService struct {
@@ -17,23 +17,23 @@ type RefreshTokensService struct {
 
 	refreshTokenTTL time.Duration
 
-	cryptoManager manager.Crypto
+	cryptoProvider crypto.Provider
 }
 
 func NewRefreshTokensService(
 	refreshTokens repository.RefreshTokens,
 	refreshTokenTTL time.Duration,
-	cryptoManager manager.Crypto,
+	cryptoProvider crypto.Provider,
 ) *RefreshTokensService {
 	return &RefreshTokensService{
 		refreshTokens:   refreshTokens,
 		refreshTokenTTL: refreshTokenTTL,
-		cryptoManager:   cryptoManager,
+		cryptoProvider:  cryptoProvider,
 	}
 }
 
 func (rts *RefreshTokensService) VerifyTokenAndFingerprint(ctx context.Context, token uuid.UUID, fingerprint string, userID uuid.UUID) (bool, error) {
-	tokenHash, err := rts.cryptoManager.Hash(token[:], nil)
+	tokenHash, err := rts.cryptoProvider.Hash(token[:], nil)
 	if err != nil {
 		return false, err
 	}
@@ -44,7 +44,7 @@ func (rts *RefreshTokensService) VerifyTokenAndFingerprint(ctx context.Context, 
 		return false, err
 	}
 
-	fingerprintHash, err := rts.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := rts.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +61,7 @@ func (rts *RefreshTokensService) VerifyTokenAndFingerprint(ctx context.Context, 
 }
 
 func (rts *RefreshTokensService) Get(ctx context.Context, token uuid.UUID) (domain.RefreshToken, error) {
-	tokenHash, err := rts.cryptoManager.Hash(token[:], nil)
+	tokenHash, err := rts.cryptoProvider.Hash(token[:], nil)
 	if err != nil {
 		return domain.RefreshToken{}, err
 	}
@@ -75,12 +75,12 @@ func (rts *RefreshTokensService) Create(ctx context.Context, userID uuid.UUID, f
 		return uuid.Nil, err
 	}
 
-	tokenHash, err := rts.cryptoManager.Hash(token[:], nil)
+	tokenHash, err := rts.cryptoProvider.Hash(token[:], nil)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	fingerprintHash, err := rts.cryptoManager.Hash([]byte(fingerprint), nil)
+	fingerprintHash, err := rts.cryptoProvider.Hash([]byte(fingerprint), nil)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -103,7 +103,7 @@ func (rts *RefreshTokensService) ExtendTokenTTL(ctx context.Context, token uuid.
 		return err
 	}
 
-	tokenHash, err := rts.cryptoManager.Hash(token[:], nil)
+	tokenHash, err := rts.cryptoProvider.Hash(token[:], nil)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (rts *RefreshTokensService) ExtendTokenTTL(ctx context.Context, token uuid.
 }
 
 func (rts *RefreshTokensService) Delete(ctx context.Context, token uuid.UUID) error {
-	tokenHash, err := rts.cryptoManager.Hash(token[:], nil)
+	tokenHash, err := rts.cryptoProvider.Hash(token[:], nil)
 	if err != nil {
 		return err
 	}

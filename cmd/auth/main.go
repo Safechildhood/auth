@@ -3,24 +3,21 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"strconv"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mirrorblade/crypto"
+	"github.com/mirrorblade/crypto/asymmetric"
+	"github.com/mirrorblade/crypto/hashing"
+	keymanager "github.com/mirrorblade/crypto/key_manager"
 	"github.com/safechildhood/auth/internal/config"
 	"github.com/safechildhood/auth/internal/handler"
 	"github.com/safechildhood/auth/internal/repository"
 	"github.com/safechildhood/auth/internal/repository/postgresql"
 	"github.com/safechildhood/auth/internal/repository/valkey"
 	"github.com/safechildhood/auth/internal/service"
-	"github.com/safechildhood/auth/pkg/crypto"
-	"github.com/safechildhood/auth/pkg/crypto/asymmetric"
-	"github.com/safechildhood/auth/pkg/crypto/hashing"
-	keymanager "github.com/safechildhood/auth/pkg/crypto/key_manager"
-	"github.com/safechildhood/auth/pkg/crypto/manager"
 	jwtmanager "github.com/safechildhood/auth/pkg/jwt"
 	glide "github.com/valkey-io/valkey-glide/go/v2"
 	glideConfig "github.com/valkey-io/valkey-glide/go/v2/config"
@@ -99,14 +96,17 @@ func main() {
 	{
 		var usersService service.Users
 		{
-			hashing, err := hashing.NewManager(hashing.Argon2Moderate)
-			if err != nil {
-				panic(err)
-			}
+			var cryptoProvider crypto.Provider
+			{
+				hashing, err := hashing.NewProvider(hashing.Argon2Moderate)
+				if err != nil {
+					panic(err)
+				}
 
-			cryptoManager, err := manager.NewCryptoManager(nil, nil, hashing, manager.Callbacks{})
-			if err != nil {
-				panic(err)
+				cryptoProvider, err = crypto.NewProvider(nil, nil, hashing, crypto.Callbacks{})
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			usersService = service.NewUsersService(
@@ -114,7 +114,7 @@ func main() {
 				repositoryVar.TemporaryUsers,
 				config.Auth.TemporaryUser.TTL,
 				config.Auth.User.SaltLength,
-				cryptoManager,
+				cryptoProvider,
 			)
 		}
 
@@ -143,38 +143,28 @@ func main() {
 		{
 			var jwtManager jwtmanager.Manager
 			{
-				privateKeyByte, publicKeyByte, err := keymanager.GenerateKeyPair(asymmetric.P521)
-				if err != nil {
-					panic(err)
-				}
-
-				privateKey, err := privateKeyToEC(privateKeyByte)
-				if err != nil {
-					panic(err)
-				}
-
-				publicKey, err := publicKeyToEC(publicKeyByte)
+				privateKey, publicKey, err := keymanager.GenerateKeyPair(asymmetric.P521)
 				if err != nil {
 					panic(err)
 				}
 
 				jwtManager, err = jwtmanager.NewTokenManager(jwt.SigningMethodES512, jwtmanager.Keys{
-					EcdsaPrivateKey: privateKey,
-					EcdsaPublicKey:  publicKey,
+					EcdsaPrivateKey: privateKey.(*ecdsa.PrivateKey),
+					EcdsaPublicKey:  publicKey.(*ecdsa.PublicKey),
 				})
 				if err != nil {
 					panic(err)
 				}
 			}
 
-			var cryptoManager manager.Crypto
+			var cryptoProvider crypto.Provider
 			{
-				hashing, err := hashing.NewManager(hashing.SHA512)
+				hashing, err := hashing.NewProvider(hashing.SHA512)
 				if err != nil {
 					panic(err)
 				}
 
-				cryptoManager, err = manager.NewCryptoManager(nil, nil, hashing, manager.Callbacks{})
+				cryptoProvider, err = crypto.NewProvider(nil, nil, hashing, crypto.Callbacks{})
 				if err != nil {
 					panic(err)
 				}
@@ -185,20 +175,20 @@ func main() {
 				repositoryVar.Blacklist,
 				config.Auth.AccessToken.TTL,
 				jwtManager,
-				cryptoManager,
+				cryptoProvider,
 			)
 		}
 
 		var refreshTokensService service.RefreshTokens
 		{
-			var cryptoManager manager.Crypto
+			var cryptoProvider crypto.Provider
 			{
-				hashing, err := hashing.NewManager(hashing.SHA512)
+				hashing, err := hashing.NewProvider(hashing.SHA512)
 				if err != nil {
 					panic(err)
 				}
 
-				cryptoManager, err = manager.NewCryptoManager(nil, nil, hashing, manager.Callbacks{})
+				cryptoProvider, err = crypto.NewProvider(nil, nil, hashing, crypto.Callbacks{})
 				if err != nil {
 					panic(err)
 				}
@@ -208,7 +198,7 @@ func main() {
 			refreshTokensService = service.NewRefreshTokensService(
 				repositoryVar.RefreshTokens,
 				config.Auth.RefreshToken.TTL,
-				cryptoManager,
+				cryptoProvider,
 			)
 		}
 
@@ -229,42 +219,4 @@ func main() {
 	if err := handlerVar.Start(); err != nil {
 		panic(err)
 	}
-}
-
-func privateKeyToEC(key []byte) (*ecdsa.PrivateKey, error) {
-	block, _ := pem.Decode(key)
-	if block == nil {
-		return nil, crypto.ErrFailedPEMBlockParsing
-	}
-
-	untypedPrivateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, crypto.ErrInvalidPEMBlock
-	}
-
-	privateKey, ok := untypedPrivateKey.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, crypto.ErrInvalidPrivateKey
-	}
-
-	return privateKey, nil
-}
-
-func publicKeyToEC(key []byte) (*ecdsa.PublicKey, error) {
-	block, _ := pem.Decode(key)
-	if block == nil {
-		return nil, crypto.ErrFailedPEMBlockParsing
-	}
-
-	untypedPublicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, crypto.ErrInvalidPKIXKey
-	}
-
-	publicKey, ok := untypedPublicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, crypto.ErrInvalidPublicKey
-	}
-
-	return publicKey, nil
 }
