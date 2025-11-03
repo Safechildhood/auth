@@ -1,0 +1,34 @@
+database:
+  users:
+    name: "users"
+
+temporary_database:
+  temporary_users:
+    name: "temporary_users"
+  verification_codes:
+    name: "verification_codes"
+    user: "user_verification_codes"
+  refresh_tokens:
+    name: "refresh_tokens"
+    user: "user_refresh_tokens"
+  blacklist:
+    name: "blacklist"
+    access_tokens: "access_tokens"
+
+auth:
+  user:
+    salt_length: 32
+
+  temporary_user:
+    ttl: 3h
+
+  verification_code:
+    length: 6
+    ttl: 10m
+    resend_ttl: 2m
+
+  access_token:
+    ttl: 15m
+
+  refresh_token:
+    ttl: 1440h # 30 days

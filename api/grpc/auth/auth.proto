@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package authpb;
+
+option go_package = "github.com/safechildhood/auth/api/grpc;authpb";
+
+import "google/protobuf/duration.proto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (VerificationCodeResponse);
+  rpc RegisterConfirm(ConfirmRequest) returns (TokensResponse);
+
+  rpc ResendCode(ResendCodeRequest) returns (VerificationCodeResponse);
+
+  rpc ValidateAction(UserSecureRequest) returns (GenericResponse);
+  rpc UpdateTokens(UserSecureRequest) returns (TokensResponse);
+
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc LoginConfirm(ConfirmRequest) returns (TokensResponse);
+  rpc Logout(UserSecureRequest) returns (GenericResponse);
+  rpc LogoutAll(UserSecureRequest) returns (GenericResponse);
+
+  rpc GetSecretPhraseHint(EmailRequest) returns (GetSecretPhraseHintResponse);
+
+  rpc ChangePassword(ChangePasswordRequest) returns (VerificationCodeResponse);
+  rpc ChangePasswordConfirm(ChangePasswordConfirmRequest)
+      returns (GenericResponse);
+  rpc ChangePasswordWithTokens(ChangePasswordWithTokensRequest)
+      returns (GenericResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string secret_phrase = 3;
+  string secret_phrase_hint = 4;
+  string fingerprint = 5;
+}
+
+message ResendCodeRequest {
+  string email = 1;
+  string fingerprint = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string fingerprint = 3;
+}
+
+message LoginResponse {
+  oneof response {
+    TokensResponse tokens = 1;
+    VerificationCodeResponse verification_code = 2;
+  }
+}
+
+message EmailRequest { string email = 1; }
+
+message GetSecretPhraseHintResponse { string secret_phrase_hint = 1; }
+
+message ChangePasswordRequest {
+  string email = 1;
+  string secret_phrase = 2;
+}
+
+message ChangePasswordConfirmRequest {
+  string email = 1;
+  string new_password = 2;
+  string verification_code = 3;
+}
+
+message ChangePasswordWithTokensRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+  string fingerprint = 3;
+  string old_password = 4;
+  string new_password = 5;
+  bool wants_logout_all = 6;
+}
+
+message ConfirmRequest {
+  string email = 1;
+  string verification_code = 2;
+  string fingerprint = 3;
+}
+
+message UserSecureRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+  string fingerprint = 3;
+}
+
+message TokensResponse {
+  string access_token = 1;
+  google.protobuf.Duration access_token_ttl = 2;
+  string refresh_token = 3;
+}
+
+message VerificationCodeResponse {
+  google.protobuf.Duration verification_code_ttl = 1;
+}
+
+message GenericResponse { bool success = 1; }
